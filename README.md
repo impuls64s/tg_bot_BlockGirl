@@ -20,8 +20,8 @@
 
 ### Установка и запуск:
 ```
-$ git clone https://github.com/impuls64s/tg_bot_block_girl.git
-$ cd tg_bot_block_girl
+$ git clone https://github.com/impuls64s/tg_bot_BlockGirl.git
+$ cd tg_bot_BlockGirl
 $ pip install -r requirements.txt
 $ pyton bot.py - запуск бота
 $ Ctrl + C - остановка бота
