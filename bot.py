@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters import Text
 
 from utils import random_photo, current_question
-from texts import bot_answers, flirting, stikers, quiz
+from texts import flirting, stikers, quiz, bot_answers as ba
 from keyboards import main_kb, start_quiz_kb, quiz_end_kb, answer_kb
 
 load_dotenv()
@@ -27,15 +27,14 @@ results = dict()
 
 @dp.message_handler(commands=['start'])
 async def cmd_start(message: types.Message):
-    await message.reply(text=bot_answers.HELP_CMD,
+    await message.reply(text=ba.HELP_CMD,
                         reply_markup=MAIN_KB,
                         parse_mode="HTML")
 
 
 @dp.message_handler(Text('Покажи фотку'))
 async def send_photo(message: types.Message):
-    await bot.send_photo(chat_id=message.from_user.id,
-                         photo=types.InputFile(random_photo()))
+    await message.answer_photo(photo=types.InputFile(random_photo()))
 
 
 @dp.message_handler(Text('Флирт с джентельменом 🤭'))
@@ -50,17 +49,15 @@ async def send_flirt(message: types.Message):
 @dp.message_handler(Text('Получить комплимент 😍'))
 async def send_compliment(message: types.Message):
     random_compliment = random.choice(flirting.COMPLIMENTS)
-    await message.answer(random_compliment)
-
-    await bot.send_photo(message.from_user.id,
-                         photo=types.InputFile(random_photo()))
+    await message.answer_photo(photo=types.InputFile(random_photo()),
+                               caption=random_compliment)
 
 
 @dp.message_handler(Text('Викторина'))
 async def start_quiz(message: types.Message):
     await message.answer(f'Количество вопросов: {len(quiz.IT)}',
                          reply_markup=END_QUIZ_KB)
-    await message.answer('Для успешного прохождения, тебе нужно ответить на все вопросы без ошибок!!! И получишь подарок 🎁',
+    await message.answer(text=ba.QUIZ_DESCRIPTION,
                          reply_markup=START_QUIZ_KB)
 
 
@@ -76,11 +73,8 @@ async def first_question(callback_query: types.CallbackQuery):
 
     question_text, list_answers, correct_answer = current_question(0)
     keyboard = answer_kb(list_answers, correct_answer)
-
-    await bot.edit_message_text(chat_id=callback_query.message.chat.id,
-                                message_id=callback_query.message.message_id,
-                                text=question_text,
-                                reply_markup=keyboard)
+    await callback_query.message.edit_text(text=question_text,
+                                           reply_markup=keyboard)
 
 
 @dp.callback_query_handler(text='correct_answer')
@@ -95,27 +89,24 @@ async def next_question(callback_query: types.CallbackQuery):
 
         question_text, list_answers, correct_answer = current_question(nnq)
         keyboard = answer_kb(list_answers, correct_answer)
-
-        await bot.edit_message_text(chat_id=callback_query.message.chat.id,
-                                    message_id=callback_query.message.message_id,
-                                    text=question_text,
-                                    reply_markup=keyboard)
+        await callback_query.message.edit_text(text=question_text,
+                                               reply_markup=keyboard)
     else:
         await callback_query.message.delete()
-        await callback_query.message.answer('Ты прошла викторину 👏, парень должен тебе подарок!',
+        await callback_query.message.answer(text=ba.WIN_QUIZ,
                                             reply_markup=MAIN_KB)
 
 
 @dp.callback_query_handler(text='wrong_answer')
-async def losing_quiz(callback: types.CallbackQuery):
-    await callback.message.answer('Это был неправильный ответ. Боль, печаль, сегодня без подарка 😢',
-                                  reply_markup=MAIN_KB)
-    await callback.message.delete()
+async def losing_quiz(callback_query: types.CallbackQuery):
+    await callback_query.message.answer(text=ba.LOSING_QUIZ,
+                                        reply_markup=MAIN_KB)
+    await callback_query.message.delete()
 
 
 @dp.message_handler()
 async def echo(message: types.Message):
-    await message.answer(text='Мадмуазель нажимайе только на кнопочки))')
+    await message.answer(text=ba.ONLY_BUTTONS)
 
 
 if __name__ == '__main__':
