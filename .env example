@@ -1,0 +1,2 @@
+API_TOKEN = your telegram token
+PHOTOS_DIRECTORY = photo directory, default=photos

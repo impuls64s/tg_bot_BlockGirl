@@ -1,14 +1,15 @@
+import logging
 import os
 import random
-import logging
 
-from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters import Text
+from dotenv import load_dotenv
 
-from utils import random_photo, current_question
-from texts import flirting, stikers, quiz, bot_answers as ba
-from keyboards import main_kb, start_quiz_kb, quiz_end_kb, answer_kb
+from keyboards import answer_kb, END_QUIZ_KB, MAIN_KB, START_QUIZ_KB
+from texts import bot_answers as ba, flirting, stikers, quiz
+from utils import current_question, get_random_photo
+
 
 load_dotenv()
 
@@ -16,11 +17,6 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=os.getenv('API_TOKEN'))
 dp = Dispatcher(bot)
-
-# Keyboards
-MAIN_KB = main_kb()
-START_QUIZ_KB = start_quiz_kb()
-END_QUIZ_KB = quiz_end_kb()
 
 results = dict()
 
@@ -34,7 +30,7 @@ async def cmd_start(message: types.Message):
 
 @dp.message_handler(Text('Покажи фотку'))
 async def send_photo(message: types.Message):
-    await message.answer_photo(photo=types.InputFile(random_photo()))
+    await message.answer_photo(photo=types.InputFile(get_random_photo()))
 
 
 @dp.message_handler(Text('Флирт с джентельменом 🤭'))
@@ -43,13 +39,13 @@ async def send_flirt(message: types.Message):
     await message.answer(random_flirt)
 
     random_sticker = random.choice(stikers.BUMS)
-    await bot.send_sticker(message.from_user.id, sticker=random_sticker)
+    await message.answer_sticker(sticker=random_sticker)
 
 
 @dp.message_handler(Text('Получить комплимент 😍'))
 async def send_compliment(message: types.Message):
     random_compliment = random.choice(flirting.COMPLIMENTS)
-    await message.answer_photo(photo=types.InputFile(random_photo()),
+    await message.answer_photo(photo=types.InputFile(get_random_photo()),
                                caption=random_compliment)
 
 
