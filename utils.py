@@ -2,6 +2,7 @@ import os
 import random
 
 from dotenv import load_dotenv
+from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from texts import quiz
 
@@ -28,3 +29,7 @@ def current_question(question_number: int) -> tuple[str, list, str]:
     list_answers = quiz_number.get("answers")
     correct_answer = quiz_number.get("correct_answer")
     return question_text, list_answers, correct_answer
+
+class QuizState(StatesGroup):
+    start_quiz = State()
+    number_correct_answers = State()

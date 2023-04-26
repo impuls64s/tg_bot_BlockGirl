@@ -1,108 +1,59 @@
 import logging
 import os
-import random
 
-from aiogram import Bot, Dispatcher, executor, types
+from aiogram import Bot, Dispatcher
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
+from aiogram.utils import executor
 from dotenv import load_dotenv
 
-from keyboards import answer_kb, END_QUIZ_KB, MAIN_KB, START_QUIZ_KB
-from texts import bot_answers as ba, flirting, stikers, quiz
-from utils import current_question, get_random_photo
+from handlers import (
+    cmd_start,
+    end_quiz,
+    send_photo,
+    send_flirt,
+    send_compliment,
+    start_quiz,
+    first_question,
+    next_question,
+    losing_quiz, echo,
+    )
+from utils import QuizState
 
-
-load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
+load_dotenv()
 
-bot = Bot(token=os.getenv('API_TOKEN'))
-dp = Dispatcher(bot)
+API_TOKEN = os.getenv('API_TOKEN')
 
-results = dict()
-
-
-@dp.message_handler(commands=['start'])
-async def cmd_start(message: types.Message):
-    await message.reply(text=ba.HELP_CMD,
-                        reply_markup=MAIN_KB,
-                        parse_mode="HTML")
+bot = Bot(token=API_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 
-@dp.message_handler(Text('Покажи фотку'))
-async def send_photo(message: types.Message):
-    await message.answer_photo(photo=types.InputFile(get_random_photo()))
+dp.register_message_handler(cmd_start, commands=['start'])
 
+dp.register_message_handler(end_quiz, commands=['cancel'], state='*')
+dp.register_message_handler(end_quiz, Text('Закончить викторину'), state='*')
 
-@dp.message_handler(Text('Флирт с джентельменом 🤭'))
-async def send_flirt(message: types.Message):
-    random_flirt = random.choice(flirting.FLIRT)
-    await message.answer(random_flirt)
+dp.register_message_handler(send_photo, Text('Покажи фотку'))
 
-    random_sticker = random.choice(stikers.BUMS)
-    await message.answer_sticker(sticker=random_sticker)
+dp.register_message_handler(send_flirt, Text('Флирт с джентельменом 🤭'))
 
+dp.register_message_handler(send_compliment, Text('Получить комплимент 😍'))
 
-@dp.message_handler(Text('Получить комплимент 😍'))
-async def send_compliment(message: types.Message):
-    random_compliment = random.choice(flirting.COMPLIMENTS)
-    await message.answer_photo(photo=types.InputFile(get_random_photo()),
-                               caption=random_compliment)
+dp.register_message_handler(start_quiz, Text('Викторина'))
+dp.register_callback_query_handler(first_question,
+                                   Text('start_quiz'),
+                                   state=QuizState.start_quiz)
+dp.register_callback_query_handler(next_question,
+                                   Text('correct_answer'),
+                                   state=QuizState.number_correct_answers)
+dp.register_callback_query_handler(losing_quiz,
+                                   Text('wrong_answer'),
+                                   state=QuizState.number_correct_answers)
 
-
-@dp.message_handler(Text('Викторина'))
-async def start_quiz(message: types.Message):
-    await message.answer(f'Количество вопросов: {len(quiz.IT)}',
-                         reply_markup=END_QUIZ_KB)
-    await message.answer(text=ba.QUIZ_DESCRIPTION,
-                         reply_markup=START_QUIZ_KB)
-
-
-@dp.message_handler(Text('Закончить викторину'))
-async def end_quiz(message: types.Message):
-    await message.reply(text='Викторина окончена.', reply_markup=MAIN_KB)
-
-
-@dp.callback_query_handler(text='start_quiz')
-async def first_question(callback_query: types.CallbackQuery):
-    user_id = callback_query.from_user.id
-    results[user_id] = 0
-
-    question_text, list_answers, correct_answer = current_question(0)
-    keyboard = answer_kb(list_answers, correct_answer)
-    await callback_query.message.edit_text(text=question_text,
-                                           reply_markup=keyboard)
-
-
-@dp.callback_query_handler(text='correct_answer')
-async def next_question(callback_query: types.CallbackQuery):
-    user_id = callback_query.from_user.id
-    results[user_id] += 1
-    number_correct_answers = results.get(user_id)
-    nnq = number_correct_answers  # next number question
-
-    if number_correct_answers < len(quiz.IT):
-        await callback_query.answer(text='Правильный ответ')
-
-        question_text, list_answers, correct_answer = current_question(nnq)
-        keyboard = answer_kb(list_answers, correct_answer)
-        await callback_query.message.edit_text(text=question_text,
-                                               reply_markup=keyboard)
-    else:
-        await callback_query.message.delete()
-        await callback_query.message.answer(text=ba.WIN_QUIZ,
-                                            reply_markup=MAIN_KB)
-
-
-@dp.callback_query_handler(text='wrong_answer')
-async def losing_quiz(callback_query: types.CallbackQuery):
-    await callback_query.message.answer(text=ba.LOSING_QUIZ,
-                                        reply_markup=MAIN_KB)
-    await callback_query.message.delete()
-
-
-@dp.message_handler()
-async def echo(message: types.Message):
-    await message.answer(text=ba.ONLY_BUTTONS)
+dp.register_message_handler(echo, state='*')
 
 
 if __name__ == '__main__':
