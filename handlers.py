@@ -84,6 +84,9 @@ async def next_question(callback_query: types.CallbackQuery,
         await callback_query.message.answer(text=ba.WIN_QUIZ,
                                             reply_markup=MAIN_KB)
         await state.finish()
+        await callback_query.message.answer_video(
+            video=types.InputFile('videos/win_quiz.mp4')
+            )
 
 
 async def losing_quiz(callback_query: types.CallbackQuery, state: FSMContext):
